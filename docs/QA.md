@@ -1,19 +1,21 @@
 # Verificación de RideClub
 
-Fecha: 3 de octubre de 2026. Actualización de frontend y backend Supabase.
+Fecha: 4 de octubre de 2026. Validación local previa a la publicación final.
 
 ## Comprobaciones de código
 
 - `npm run build`: TypeScript y compilación Vite completadas.
-- `npm test`: veinticinco pruebas Vitest completadas.
+- `npm test`: 29 pruebas Vitest completadas (13 demo, 9 negocio, 3 CSV y 4 adaptador Auth).
 - `git diff --check`: sin errores de espacios.
 - `npx supabase test db`: prueba de esquema disponible en `supabase/tests/database.test.sql`; requiere Docker/Supabase CLI y se ejecuta después de `supabase db reset`.
 
 Las pruebas cubren canje y consumo de un solo uso, saldo por marca, vigencia, consentimiento, cupos, registro y referido, teléfonos regionales, compras con descuento USDT y puntos atómicos, saldo insuficiente, modelos sin precio, reintentos idempotentes, recargas y migración de cuentas anteriores. También validan marcas, actualización del perfil sin pérdida de saldo, roles cliente/administrador/empresa, aislamiento entre empresas, control global del administrador, CRUD empresarial de clientes, inicio de sesión de una cuenta creada y persistida, bloqueo de acceso, sincronización entre mantenimiento y recompensa, reglas de puntos por empresa y vencimiento trazable. Comprueban que no se repone saldo gastado al recargar y que un referido no se premia dos veces, incluso entre marcas o después de una confirmación manual del taller.
 
-## Recorrido real de navegador
+Los cuatro tests de Auth usan un cliente simulado: verifican normalización de correo, conservación de contraseña, propagación de errores y URL de recuperación. No prueban entrega de correo, callbacks reales ni RLS. El build genera un bundle JS de unos 650 kB y advierte que supera 500 kB. El audit previo informó dos vulnerabilidades moderadas de desarrollo en Vitest/mocker; no se aplicaron upgrades mayores.
 
-Chromium headless con Playwright. Resultado: **PASS**, sin errores de JavaScript.
+## Recorrido de navegador pendiente de repetir
+
+El recorrido siguiente se conserva como guion de demo. No se ejecutó Playwright durante esta revisión y no acredita el nuevo flujo de contraseña ni un backend remoto. Repetirlo y guardar evidencia antes de declarar PASS.
 
 1. El botón superior **Iniciar sesión** abre el ingreso por correo. El registro exige seleccionar una marca vinculada (Zontes, NIU o Kiden).
 2. Cambio de región Estados Unidos (+1) a Bolivia (+591); registro con celular local de ocho dígitos y referido `10002026` y marca NIU. El perfil guarda la marca y el rol cliente; vincular Kiden desde Mi club conserva saldos.
@@ -46,8 +48,8 @@ Capturas del frontend ejecutado: [registro con marca](preview-registration.jpg),
 
 ## Backend
 
-Con las variables de Supabase configuradas, el registro e ingreso usan correo, los datos son compartidos y la separación de roles se aplica con RLS y funciones transaccionales. El esquema de pruebas comprueba tablas, funciones, RLS y el seed. Supabase Cron ejecuta diariamente el vencimiento de puntos a las 04:00 UTC (medianoche de Bolivia), aunque ningún cliente abra la aplicación. En este entorno no estaba disponible Docker ni Supabase CLI, por lo que la migración debe ejecutarse localmente con los comandos de [BACKEND.md](BACKEND.md) antes del despliegue.
+El código usa Supabase Auth con contraseña y define separación por RLS y funciones transaccionales. La suite SQL contiene 33 aserciones, incluidas compra externa, reintento y rechazo de la misma factura para otro cliente de la empresa. No se ejecutó: Supabase CLI no estaba instalado y el daemon de Docker no estaba disponible. La migración configura vencimiento diario a las 04:00 UTC; su ejecución remota no se verificó. Ejecutar [BACKEND.md](BACKEND.md) en un entorno local preparado y probar concurrencia y roles antes del despliegue.
 
 ## Límites
 
-No hay verificación de celular, creación de wallet, fondos reales, pagos, contratos ni transacciones de Base Sepolia. La autorización criptográfica del taller y la quema on-chain todavía no existen; el consumo de cupón sí se impide en el backend. La base de clientes externa todavía no está conectada. Disponibilidad comercial de Kiden en Bolivia y aprobación de las recompensas pendientes.
+No hay verificación de celular, creación de wallet, fondos reales ni transacciones de Base Sepolia. Existen contratos base sin compilación, auditoría o despliegue verificados (Forge no disponible). El código del backend rechaza reutilizar cupones, pero esa garantía requiere pruebas de ejecución SQL. Edge Functions, correo real, callbacks y roles remotos no se probaron. La API externa requiere un integrador central de confianza porque su clave permite operar cualquier empresa. No se verificaron despliegues ni respaldos/restauraciones; del workflow solo se comprobó sintaxis Bash y existencia de la versión fijada del CLI. Disponibilidad comercial de Kiden en Bolivia y aprobación de las recompensas pendientes.

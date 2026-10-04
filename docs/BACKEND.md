@@ -5,13 +5,13 @@ El backend está preparado en `supabase/` y la interfaz cambia automáticamente 
 - sin `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, conserva la demo local;
 - con ambas variables, usa Supabase Auth, PostgreSQL, RLS, funciones transaccionales y Edge Functions.
 
-No incluye contratos, tokens, NFTs, pagos reales ni creación de wallets. Los campos de wallet solo reservan la configuración para la siguiente etapa.
+El backend no integra pagos reales, tokens, NFTs ni creación de wallets. Existen contratos base en `contracts/`, sin compilación ni despliegue verificados. Los campos de wallet reservan la configuración para la siguiente etapa.
 
 ## Qué queda conectado
 
 | Área | Implementación |
 |---|---|
-| Registro e ingreso | Enlace seguro enviado por Supabase Auth al correo |
+| Registro e ingreso | Correo y contraseña; confirmación inicial y recuperación por correo |
 | Roles | `client`, `company`, `admin` en `profiles` |
 | Estado de cuenta | `active`, `blocked`, `deleted`; bloqueo y baja impiden leer datos privados u operar |
 | Empresas | Alta, edición, publicación, suspensión, identidad visual, correo de acceso y membresía |
@@ -41,9 +41,11 @@ supabase/
     20261004030000_realtime.sql
     20261004033000_balance_guard.sql
     20261004043000_scheduled_expiry.sql
+    20261004053000_integration_api.sql
   functions/
     bootstrap-admin/
     manage-user/
+    integration-api/
     _shared/
   tests/database.test.sql
   seed.sql
@@ -107,7 +109,7 @@ npm ci
 npm run dev
 ```
 
-El correo local llega a Inbucket, normalmente en `http://127.0.0.1:54324`. Abre el mensaje y pulsa el enlace de acceso.
+El correo local llega a Inbucket, normalmente en `http://127.0.0.1:54324`. Confirma el registro con su enlace. Las cuentas creadas mediante operaciones privilegiadas sin contraseña deben usar **Olvidé mi contraseña** para establecerla; después ingresan con correo y contraseña. Verifica las URLs de redirección locales antes de probarlo.
 
 ## Pruebas automáticas
 
@@ -129,26 +131,29 @@ No ejecutes estos comandos hasta decidir publicar el backend:
 npx supabase login
 npx supabase link --project-ref TU_PROJECT_REF
 npx supabase db push
-npx supabase secrets set BOOTSTRAP_SECRET=UN_SECRETO_LARGO_Y_UNICO
+npx supabase secrets set BOOTSTRAP_SECRET=UN_SECRETO_LARGO_Y_UNICO INTEGRATION_API_KEY=OTRO_SECRETO_LARGO_Y_UNICO
 npx supabase functions deploy manage-user
 npx supabase functions deploy bootstrap-admin --no-verify-jwt
+npx supabase functions deploy integration-api --no-verify-jwt
 ```
 
 Después:
 
 1. Configura en Supabase Auth la URL pública del sitio y sus redirect URLs.
 2. Invoca una sola vez `bootstrap-admin` con el secreto para crear el administrador inicial.
-3. Entra con ese correo mediante el enlace mágico.
+3. Usa recuperación de contraseña con ese correo para establecerla y luego inicia sesión. Verifica el callback y el acceso del rol en un navegador privado.
 4. Guarda cada empresa desde Administración para crear o sincronizar su usuario de acceso.
 5. Añade a la plataforma de hosting `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; nunca expongas la service role key en variables `VITE_*`.
 6. Tras crear el administrador, rota el secreto de bootstrap o elimina esa Edge Function del proyecto remoto.
 
+La API de conexión con CRM/facturación, sus rutas y pruebas están en [INTEGRATION_API.md](INTEGRATION_API.md). El despliegue público, las cabeceras, los respaldos y el procedimiento de recuperación están en [OPERATIONS.md](OPERATIONS.md).
+
 ## Recorrido funcional recomendado
 
 1. Inicia como admin y crea una empresa `active` con un correo real controlado por ti.
-2. Cierra sesión, solicita acceso con ese correo y comprueba que solo ve su empresa.
+2. Cierra sesión, establece la contraseña mediante recuperación e ingresa con ese correo; comprueba que solo ve su empresa.
 3. Desde la empresa crea un cliente; desde el admin crea otro para una empresa distinta.
-4. Bloquea el primer cliente, abre su enlace de acceso y verifica que se cierre la sesión sin mostrar datos privados.
+4. Bloquea el primer cliente e intenta iniciar sesión; verifica que se cierre la sesión sin mostrar datos privados.
 5. Reactívalo, cambia `Mantenimiento` a 1.000 y verifica que las recompensas de servicio de esa empresa también cuesten 1.000.
 6. Compra una moto como cliente y comprueba saldo USDT, comprobante, puntos y métricas de admin/empresa.
 7. Canjea una recompensa y úsala desde Taller; el segundo uso debe ser rechazado.
