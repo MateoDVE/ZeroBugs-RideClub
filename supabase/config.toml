@@ -26,8 +26,8 @@ port = 54324
 
 [auth]
 enabled = true
-site_url = "http://127.0.0.1:5173"
-additional_redirect_urls = ["http://localhost:5173", "http://127.0.0.1:5173"]
+site_url = "https://ride-club.vercel.app"
+additional_redirect_urls = ["https://ride-club.vercel.app", "https://ride-club.vercel.app/**", "http://localhost:5173", "http://127.0.0.1:5173"]
 jwt_expiry = 3600
 enable_signup = true
 
