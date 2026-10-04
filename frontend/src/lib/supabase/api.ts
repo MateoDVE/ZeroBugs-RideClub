@@ -105,14 +105,15 @@ async function fetchAll(table: string, orderColumn = "created_at") {
 export async function requestRegistration(input: {
   name: string;
   email: string;
+  password: string;
   phone: string;
   brand: string;
   referralCode?: string;
 }) {
-  const { error } = await supabaseClient().auth.signInWithOtp({
+  const { error } = await supabaseClient().auth.signUp({
     email: input.email.trim().toLowerCase(),
+    password: input.password,
     options: {
-      shouldCreateUser: true,
       // Supabase returns the session in the URL hash. Keep our hash-based
       // router out of the callback URL so it cannot overwrite those tokens.
       emailRedirectTo: `${window.location.origin}/?auth=callback`,
@@ -127,14 +128,24 @@ export async function requestRegistration(input: {
   fail(error);
 }
 
-export async function requestLogin(email: string) {
-  const { error } = await supabaseClient().auth.signInWithOtp({
+export async function requestLogin(email: string, password: string) {
+  const { error } = await supabaseClient().auth.signInWithPassword({
     email: email.trim().toLowerCase(),
-    options: {
-      shouldCreateUser: false,
-      emailRedirectTo: `${window.location.origin}/?auth=callback`,
-    },
+    password,
   });
+  fail(error);
+}
+
+export async function requestPasswordReset(email: string) {
+  const { error } = await supabaseClient().auth.resetPasswordForEmail(
+    email.trim().toLowerCase(),
+    { redirectTo: `${window.location.origin}/?auth=recovery` },
+  );
+  fail(error);
+}
+
+export async function updatePassword(password: string) {
+  const { error } = await supabaseClient().auth.updateUser({ password });
   fail(error);
 }
 

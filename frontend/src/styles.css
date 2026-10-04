@@ -1581,6 +1581,7 @@ main {
   line-height: 1.8;
 }
 .input-with-icon {
+  position: relative;
   display: flex;
   align-items: center;
   border: 1px solid #dbe4cf;
@@ -1599,6 +1600,37 @@ main {
 }
 .input-with-icon input:focus-visible {
   outline: none;
+}
+.password-field input {
+  padding-right: 44px;
+}
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: #64715e;
+  cursor: pointer;
+}
+.field-error {
+  color: #9f2f2f !important;
+}
+.auth-recovery-link {
+  align-self: flex-end;
+  border: 0;
+  background: transparent;
+  color: #4e682f;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.auth-recovery-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .optional {
   font-size: 9px;
