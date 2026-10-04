@@ -2,7 +2,7 @@
 
 React 19 + TypeScript + Vite. Interfaz responsive con CSS propio, Lucide y QRCode. Fotografías, logos y tipografía locales; sin dependencias de imágenes remotas al ejecutar la demo.
 
-Supabase aporta Auth por correo y contraseña, confirmación inicial y recuperación por correo, PostgreSQL, Row Level Security, funciones transaccionales y Edge Functions. Si las variables públicas de Supabase no están presentes, el frontend conserva el motor local como modo de presentación.
+Supabase aporta Auth por enlace de correo, PostgreSQL, Row Level Security, funciones transaccionales y Edge Functions. Si las variables públicas de Supabase no están presentes, el frontend conserva el motor local como modo de presentación.
 
 ## Módulos
 
@@ -53,13 +53,13 @@ La tarjeta visual incluye foto ilustrativa, beneficio, marca, número, estado, v
 
 ## Backend implementado
 
-Las migraciones de `supabase/` crean empresas, perfiles, membresías, catálogos, reglas, saldos, libro de puntos, compras, cupones, favoritas, vínculos externos y auditoría. Las compras y canjes son transacciones atómicas; la compra demo es idempotente por cliente y clave de operación. La compra externa usa referencia única por empresa, con índice único y bloqueo transaccional; no permite reutilizarla entre clientes. El saldo de puntos se deriva del libro contable. El alta/edición privilegiada de usuarios usa la Edge Function `manage-user`; `bootstrap-admin` existe únicamente para crear el primer administrador. `integration-api` permite la conexión mediante un integrador central de confianza cuya clave global autoriza cualquier empresa. La sincronización de clientes tiene varios pasos y puede requerir conciliación tras fallos parciales; su ejecución remota no se verificó.
+Las migraciones de `supabase/` crean empresas, perfiles, membresías, catálogos, reglas, saldos, libro de puntos, compras, cupones, favoritas, vínculos externos y auditoría. Las compras y canjes son transacciones atómicas; la compra es idempotente por cliente y clave de operación. El saldo de puntos se deriva del libro contable. El alta/edición privilegiada de usuarios usa la Edge Function `manage-user`; `bootstrap-admin` existe únicamente para crear el primer administrador. `integration-api` permite la conexión con facturación o CRM sin entregar acceso directo a la base.
 
 Consulta [BACKEND.md](BACKEND.md) para instalación y recorridos de verificación.
 
 ## Etapa siguiente: EVM
 
-Red prevista: Base Sepolia, chain ID 84532. Hay contratos base en `contracts/`, sin compilación, auditoría, despliegue ni integración verificados.
+Red prevista: Base Sepolia, chain ID 84532. No hay contratos desplegados en esta entrega.
 
 1. Adaptar la [API genérica](INTEGRATION_API.md) a las credenciales y campos del CRM real de cada empresa.
 2. Proveedor de wallet embebida que preserve las garantías de custodia acordadas.

@@ -34,3 +34,4 @@ contract BrandLoyaltyToken is ERC20, AccessControl {
         super._update(from, to, value);
     }
 }
+

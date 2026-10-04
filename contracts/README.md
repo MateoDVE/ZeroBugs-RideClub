@@ -22,3 +22,4 @@ forge build
 - `user`: aprueba USDT, compra, recibe tokens de esa marca y los quema para canjear.
 
 Estos contratos son un punto de partida de hackathon. Aún no están desplegados, conectados al frontend ni auditados. Antes de usar fondos reales faltan pruebas unitarias, firmas/multisig, pausas de emergencia, gestión segura de metadata y auditoría externa.
+

@@ -67,3 +67,4 @@ contract RewardNFT is ERC721, AccessControl {
         return super._update(to, tokenId, auth);
     }
 }
+

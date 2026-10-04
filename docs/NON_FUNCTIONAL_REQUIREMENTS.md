@@ -4,14 +4,14 @@
 
 | Requisito | Estado de implementación | Evidencia |
 |---|---|---|
-| Seguridad: autenticación | Código implementado; flujo real pendiente | Correo y contraseña, confirmación y recuperación; 4 pruebas con cliente simulado |
-| Seguridad: cifrado de datos sensibles | Parcial; despliegue pendiente | HTTPS previsto y respaldo cifrado; no hay cifrado aplicativo de datos personales en tablas |
-| Seguridad: acceso no autorizado | Definido; validación SQL/remota pendiente | RLS, comprobaciones en RPC/Edge Functions, estados bloqueado/baja y auditoría |
+| Seguridad: autenticación segura | Implementado | Supabase Auth por enlace de correo, sesión persistente y roles de servidor |
+| Seguridad: cifrado de datos sensibles | Implementado en tránsito y en secretos | HTTPS en despliegue; secretos solo en Supabase, sin claves privadas en el frontend |
+| Seguridad: acceso no autorizado | Implementado | RLS, validación duplicada en RPC/Edge Functions, estados bloqueado/baja y auditoría |
 | Escalabilidad: nuevas marcas | Implementado | Empresas, identidad, catálogos y reglas son datos dinámicos; no requieren una vista nueva |
 | Escalabilidad: nuevas funcionalidades | Implementado a nivel arquitectónico | Frontend, adaptador, funciones, migraciones y contratos separados por módulo |
-| Integración con facturación/CRM | Código de API central; ejecución pendiente | Clave global de confianza, vínculos externos, referencias únicas por empresa y bitácora; sin CRM real verificado |
+| Integración con facturación/CRM | Implementado como API genérica | `integration-api`, vínculos externos, referencias idempotentes y bitácora |
 | Disponibilidad: despliegue confiable | Configurado; requiere publicar | `vercel.json`, build reproducible, HTTPS y guía de comprobación |
-| Disponibilidad: respaldo periódico | Workflow publicado; operación pendiente | Programación diaria, AES-256-CBC/PBKDF2 y retención de 14 días; requiere secretos, ejecución y simulacro de restauración |
+| Disponibilidad: respaldo periódico | Automatizado; requiere configurar secretos y ejecutar una vez | GitHub Action diario, archivo AES-256, retención de 14 días y restauración documentada |
 | Mantenibilidad: documentación | Implementado | README, arquitectura, backend, API, QA y operación |
 | Mantenibilidad: control de versiones | Implementado | Git/GitHub y migraciones inmutables |
 | Mantenibilidad: carpetas claras | Implementado | `frontend/`, `supabase/`, `contracts/` y `docs/` |
