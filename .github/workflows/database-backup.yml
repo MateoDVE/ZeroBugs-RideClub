@@ -41,23 +41,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          umask 077
           mkdir -p database-backup
-          # Remove plaintext even when a dump or encryption fails.
-          trap 'find database-backup -type f ! -name "*.enc" -delete' EXIT
           stamp="$(date -u +%Y-%m-%d_%H-%M-UTC)"
           npx --yes supabase@2.119.0 link \
             --project-ref "$SUPABASE_PROJECT_REF" \
             --password "$SUPABASE_DB_PASSWORD"
-          npx --yes supabase@2.119.0 db dump --linked --role-only \
-            --file "database-backup/roles-$stamp.sql"
           npx --yes supabase@2.119.0 db dump --linked \
             --file "database-backup/schema-$stamp.sql"
           npx --yes supabase@2.119.0 db dump --linked \
-            --data-only --use-copy \
+            --data-only \
             --file "database-backup/data-$stamp.sql"
           tar -C database-backup -czf "database-backup/rideclub-$stamp.tar.gz" \
-            "roles-$stamp.sql" "schema-$stamp.sql" "data-$stamp.sql"
+            "schema-$stamp.sql" "data-$stamp.sql"
           openssl enc -aes-256-cbc -pbkdf2 -salt \
             -in "database-backup/rideclub-$stamp.tar.gz" \
             -out "database-backup/rideclub-$stamp.tar.gz.enc" \

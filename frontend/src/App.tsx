@@ -268,11 +268,7 @@ export default function App() {
         return undefined;
       }
     };
-    const { data } = supabaseClient().auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" && active) {
-        setAuthMode("recovery");
-        setAuth(true);
-      }
+    const { data } = supabaseClient().auth.onAuthStateChange(() => {
       window.setTimeout(() => {
         void (async () => {
           // Supabase can emit SIGNED_IN again when a tab regains focus or the
@@ -287,12 +283,8 @@ export default function App() {
       // The SDK can finish restoring the callback session before the auth
       // listener subscribes. This fallback makes that successful session
       // deterministic instead of leaving the user on the login screen.
-      if (!active) return;
       if (passwordRecovery) {
-        setAuthMode(next?.currentId && !callbackError ? "recovery" : "login");
-        if (!next?.currentId || callbackError) {
-          setAuthError("El enlace de recuperación no es válido o ha vencido. Solicita uno nuevo.");
-        }
+        setAuthMode("recovery");
         setAuth(true);
       } else if (authCallback) enterAuthenticatedArea(next);
     })();

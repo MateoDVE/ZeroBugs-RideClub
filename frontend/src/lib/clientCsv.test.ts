@@ -42,3 +42,4 @@ describe("client CSV import", () => {
     expect(result.issues[0].message).toContain("empresa");
   });
 });
+
