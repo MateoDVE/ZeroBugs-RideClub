@@ -1,0 +1,73 @@
+name: Encrypted database backup
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rideclub-database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Backup Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      BACKUP_ENCRYPTION_PASSWORD: ${{ secrets.BACKUP_ENCRYPTION_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF BACKUP_ENCRYPTION_PASSWORD; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Missing required GitHub secret: $variable"
+              exit 1
+            fi
+          done
+
+      - name: Create logical backups
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p database-backup
+          # Remove plaintext even when a dump or encryption fails.
+          trap 'find database-backup -type f ! -name "*.enc" -delete' EXIT
+          stamp="$(date -u +%Y-%m-%d_%H-%M-UTC)"
+          npx --yes supabase@2.119.0 link \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --password "$SUPABASE_DB_PASSWORD"
+          npx --yes supabase@2.119.0 db dump --linked --role-only \
+            --file "database-backup/roles-$stamp.sql"
+          npx --yes supabase@2.119.0 db dump --linked \
+            --file "database-backup/schema-$stamp.sql"
+          npx --yes supabase@2.119.0 db dump --linked \
+            --data-only --use-copy \
+            --file "database-backup/data-$stamp.sql"
+          tar -C database-backup -czf "database-backup/rideclub-$stamp.tar.gz" \
+            "roles-$stamp.sql" "schema-$stamp.sql" "data-$stamp.sql"
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in "database-backup/rideclub-$stamp.tar.gz" \
+            -out "database-backup/rideclub-$stamp.tar.gz.enc" \
+            -pass env:BACKUP_ENCRYPTION_PASSWORD
+          find database-backup -type f ! -name '*.enc' -delete
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: rideclub-database-backup-${{ github.run_id }}
+          path: database-backup/*.enc
+          if-no-files-found: error
+          retention-days: 14
