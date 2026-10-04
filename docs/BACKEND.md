@@ -5,13 +5,13 @@ El backend está preparado en `supabase/` y la interfaz cambia automáticamente 
 - sin `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, conserva la demo local;
 - con ambas variables, usa Supabase Auth, PostgreSQL, RLS, funciones transaccionales y Edge Functions.
 
-El backend no integra pagos reales, tokens, NFTs ni creación de wallets. Existen contratos base en `contracts/`, sin compilación ni despliegue verificados. Los campos de wallet reservan la configuración para la siguiente etapa.
+No incluye contratos, tokens, NFTs, pagos reales ni creación de wallets. Los campos de wallet solo reservan la configuración para la siguiente etapa.
 
 ## Qué queda conectado
 
 | Área | Implementación |
 |---|---|
-| Registro e ingreso | Correo y contraseña; confirmación inicial y recuperación por correo |
+| Registro e ingreso | Enlace seguro enviado por Supabase Auth al correo |
 | Roles | `client`, `company`, `admin` en `profiles` |
 | Estado de cuenta | `active`, `blocked`, `deleted`; bloqueo y baja impiden leer datos privados u operar |
 | Empresas | Alta, edición, publicación, suspensión, identidad visual, correo de acceso y membresía |
@@ -109,7 +109,7 @@ npm ci
 npm run dev
 ```
 
-El correo local llega a Inbucket, normalmente en `http://127.0.0.1:54324`. Confirma el registro con su enlace. Las cuentas creadas mediante operaciones privilegiadas sin contraseña deben usar **Olvidé mi contraseña** para establecerla; después ingresan con correo y contraseña. Verifica las URLs de redirección locales antes de probarlo.
+El correo local llega a Inbucket, normalmente en `http://127.0.0.1:54324`. Abre el mensaje y pulsa el enlace de acceso.
 
 ## Pruebas automáticas
 
@@ -141,7 +141,7 @@ Después:
 
 1. Configura en Supabase Auth la URL pública del sitio y sus redirect URLs.
 2. Invoca una sola vez `bootstrap-admin` con el secreto para crear el administrador inicial.
-3. Usa recuperación de contraseña con ese correo para establecerla y luego inicia sesión. Verifica el callback y el acceso del rol en un navegador privado.
+3. Entra con ese correo mediante el enlace mágico.
 4. Guarda cada empresa desde Administración para crear o sincronizar su usuario de acceso.
 5. Añade a la plataforma de hosting `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; nunca expongas la service role key en variables `VITE_*`.
 6. Tras crear el administrador, rota el secreto de bootstrap o elimina esa Edge Function del proyecto remoto.
@@ -151,9 +151,9 @@ La API de conexión con CRM/facturación, sus rutas y pruebas están en [INTEGRA
 ## Recorrido funcional recomendado
 
 1. Inicia como admin y crea una empresa `active` con un correo real controlado por ti.
-2. Cierra sesión, establece la contraseña mediante recuperación e ingresa con ese correo; comprueba que solo ve su empresa.
+2. Cierra sesión, solicita acceso con ese correo y comprueba que solo ve su empresa.
 3. Desde la empresa crea un cliente; desde el admin crea otro para una empresa distinta.
-4. Bloquea el primer cliente e intenta iniciar sesión; verifica que se cierre la sesión sin mostrar datos privados.
+4. Bloquea el primer cliente, abre su enlace de acceso y verifica que se cierre la sesión sin mostrar datos privados.
 5. Reactívalo, cambia `Mantenimiento` a 1.000 y verifica que las recompensas de servicio de esa empresa también cuesten 1.000.
 6. Compra una moto como cliente y comprueba saldo USDT, comprobante, puntos y métricas de admin/empresa.
 7. Canjea una recompensa y úsala desde Taller; el segundo uso debe ser rechazado.

@@ -64,7 +64,6 @@ Deno.serve(async (request) => {
 
   const requestId = crypto.randomUUID();
   const endpoint = endpointFor(new URL(request.url));
-  // Credencial central de RideClub: autoriza todas las empresas, no una sola.
   const configuredKey = Deno.env.get("INTEGRATION_API_KEY") ?? "";
   const receivedKey = request.headers.get("x-integration-key") ?? "";
   if (!configuredKey || !receivedKey || !(await sameSecret(receivedKey, configuredKey)))
@@ -124,13 +123,12 @@ Deno.serve(async (request) => {
       if (input.status && !["active", "blocked", "deleted"].includes(input.status))
         throw new ApiError(400, "Estado de cliente inválido.");
 
-      const { data: linked, error: linkedError } = await admin
+      const { data: linked } = await admin
         .from("external_customer_links")
         .select("profile_id")
         .eq("company_id", company.id)
         .eq("external_id", externalId)
         .maybeSingle();
-      if (linkedError) throw linkedError;
       const { data: existing, error: existingError } = await admin
         .from("profiles")
         .select("id,role,primary_company_id")
@@ -188,19 +186,13 @@ Deno.serve(async (request) => {
         .single();
       if (profileError) throw profileError;
 
-      const link = {
+      const { error: linkError } = await admin.from("external_customer_links").upsert({
         company_id: company.id,
         profile_id: profileId,
         external_id: externalId,
         source: "api",
         last_synced_at: new Date().toISOString(),
-      };
-      // No sobrescribir el propietario si otra solicitud insertó el vínculo.
-      const { error: linkError } = linked
-        ? await admin.from("external_customer_links")
-          .update({ source: link.source, last_synced_at: link.last_synced_at })
-          .eq("company_id", company.id).eq("external_id", externalId).eq("profile_id", profileId)
-        : await admin.from("external_customer_links").insert(link);
+      }, { onConflict: "company_id,external_id" });
       if (linkError) throw linkError;
       const { error: auditError } = await admin.from("audit_logs").insert({
         actor_id: null,

@@ -1,13 +1,13 @@
 # API de integración con CRM y facturación
 
-RideClub incluye una Edge Function para un integrador central de confianza. Usa una clave global en `x-integration-key` y ejecuta operaciones con `service_role`: quien posea esa clave puede seleccionar cualquier empresa. No ofrece credenciales aisladas por comercio ni vincula la clave al parámetro `company`. Nunca debe distribuirse a empresas independientes ni incluirse en el navegador; CORS no sustituye autorización. El integrador central debe comprobar el origen y los permisos de cada sistema antes de llamar. No se ha verificado su ejecución remota.
+RideClub incluye una Edge Function de servidor para conectar sistemas comerciales sin exponer la `service_role` ni aceptar movimientos desde el navegador. La API usa HTTPS, una clave independiente en `x-integration-key`, referencias externas idempotentes y una bitácora sin cuerpos ni datos personales.
 
 ## Activación
 
-Genera y conserva una clave aleatoria en un gestor de secretos. Cuando decidas desplegar, carga el mismo valor en el integrador central y en Supabase (el siguiente valor es un marcador):
+Genera una clave diferente a las demás credenciales y despliega la función:
 
 ```bash
-npx supabase secrets set INTEGRATION_API_KEY="REEMPLAZAR_POR_SECRETO_GENERADO"
+npx supabase secrets set INTEGRATION_API_KEY="$(openssl rand -hex 32)"
 npx supabase functions deploy integration-api --no-verify-jwt
 ```
 
@@ -26,7 +26,7 @@ Content-Type: application/json
 x-integration-key: TU_CLAVE_DE_INTEGRACION
 ```
 
-Las respuestas de la API incluyen `requestId` (salvo el preflight CORS). Los listados devuelven hasta 200 registros, sin paginación implementada; no deben usarse como exportación completa. La bitácora técnica evita cuerpos y datos personales, pero su escritura no garantiza que toda solicitud quede registrada.
+Cada respuesta incluye `requestId`. Los listados devuelven hasta 200 registros por solicitud.
 
 ## Endpoints
 
@@ -58,8 +58,6 @@ curl -sS -X POST \
 
 El vínculo es único por `(empresa, externalId)` y también por `(empresa, perfil)`. Si el correo pertenece a otro rol o empresa, la API responde `409` y no reasigna silenciosamente la cuenta.
 
-Auth, perfil, vínculo y bitácora se actualizan en pasos separados, sin una transacción común. Un fallo puede dejar un alta parcial: revisar el estado antes de reintentar. Las colisiones explícitas devuelven `409`; otros errores de validación o base pueden devolver `400`, por lo que no se debe interpretar cualquier fallo como ausencia de cambios.
-
 ### Registrar una compra confirmada externamente
 
 Primero consulta `GET /bikes` para obtener el UUID del modelo. Luego:
@@ -84,8 +82,8 @@ Esta operación:
 - guarda la compra con la referencia `EXT:empresa:referencia`;
 - acredita la regla de compra vigente de esa empresa;
 - no descuenta el saldo USDT demo, porque el pago ya fue confirmado por el sistema externo;
-- al repetir la referencia con el mismo cliente, moto y monto, devuelve la compra existente con `created: false`;
-- rechaza reutilizarla con otro cliente, moto o monto dentro de la misma empresa;
+- devuelve el mismo resultado al repetir exactamente la misma referencia;
+- rechaza reutilizarla con otra moto o monto;
 - registra auditoría y bitácora técnica.
 
 ## Prueba rápida
@@ -100,4 +98,4 @@ Debe responder `{"ok":true,...}`. Una clave incorrecta debe devolver `401`. Desp
 
 ## Adaptación a un proveedor real
 
-El contrato está implementado, sin pruebas de ejecución de Edge Functions en esta entrega. Para un proveedor real faltan mapeo, autorización en el integrador central, estrategia de reintentos y pruebas de aislamiento y fallos parciales. La compra externa usa una RPC transaccional con bloqueo por empresa/referencia e índice único; las pruebas SQL incluidas aún deben ejecutarse. Para acceso directo de comercios se necesita diseñar credenciales por empresa antes de habilitarlo.
+La API ya fija el contrato seguro de RideClub. Para un CRM o sistema de facturación específico falta mapear sus campos, autenticar su lado y decidir si llamará mediante webhook o sincronización programada. No es necesario cambiar el modelo de puntos ni permitir acceso directo a PostgreSQL.

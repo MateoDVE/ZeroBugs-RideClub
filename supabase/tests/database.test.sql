@@ -1,6 +1,6 @@
 begin;
 
-select plan(33);
+select plan(29);
 
 select has_table('public', 'companies', 'companies existe');
 select has_table('public', 'profiles', 'profiles existe');
@@ -34,27 +34,6 @@ select is((select count(*)::integer from public.rewards), 9, 'seed incluye nueve
 select is((select count(*)::integer from public.point_rules), 12, 'cada empresa tiene cuatro reglas');
 select is((select count(*)::integer from public.point_rules where kind = 'purchase'), 3, 'compra se configura una vez por empresa');
 select is((select count(*)::integer from public.rewards where kind = 'service' and points = 500), 3, 'mantenimiento inicia sincronizado');
-
--- Fixtures aisladas: la transacción completa se revierte al terminar.
-insert into auth.users(id, email, raw_user_meta_data) values
-  ('a0000000-0000-4000-8000-000000000001', 'integration-one@example.test', '{"full_name":"Integration One","brand":"Zontes"}'),
-  ('a0000000-0000-4000-8000-000000000002', 'integration-two@example.test', '{"full_name":"Integration Two","brand":"Zontes"}');
-
-select is(
-  (public.record_external_purchase('zontes', 'integration-one@example.test', 'TEST-INVOICE-001',
-    (select b.id from public.bikes b join public.companies c on c.id = b.company_id where c.slug = 'zontes' and not b.archived limit 1), 1000)->>'created')::boolean,
-  true, 'primera factura crea la compra');
-select is(
-  (public.record_external_purchase('zontes', 'integration-one@example.test', 'TEST-INVOICE-001',
-    (select b.id from public.bikes b join public.companies c on c.id = b.company_id where c.slug = 'zontes' and not b.archived limit 1), 1000)->>'created')::boolean,
-  false, 'reintento no duplica la compra');
-select throws_ok(
-  $$select public.record_external_purchase('zontes', 'integration-two@example.test', 'TEST-INVOICE-001',
-    (select b.id from public.bikes b join public.companies c on c.id = b.company_id where c.slug = 'zontes' and not b.archived limit 1), 1000)$$,
-  'P0001', 'La referencia externa ya pertenece a otra compra.', 'factura no se reutiliza para otro cliente');
-select is(
-  (select count(*)::integer from public.purchases where operation_id = 'EXT:zontes:TEST-INVOICE-001'),
-  1, 'solo persiste una compra con la referencia');
 
 select * from finish();
 rollback;

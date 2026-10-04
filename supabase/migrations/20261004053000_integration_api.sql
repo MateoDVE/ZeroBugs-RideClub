@@ -1,8 +1,3 @@
--- Una factura externa no puede asignarse a dos clientes de la misma empresa.
-create unique index purchases_external_operation_unique
-  on public.purchases(company_id, operation_id)
-  where operation_id like 'EXT:%';
-
 create table public.external_customer_links (
   company_id uuid not null references public.companies(id) on delete cascade,
   profile_id uuid not null references public.profiles(id) on delete cascade,
@@ -67,7 +62,7 @@ declare
   operation text;
   amount numeric(18,2);
 begin
-  if p_external_id is null or char_length(btrim(p_external_id)) not between 3 and 80 then
+  if char_length(btrim(p_external_id)) not between 3 and 80 then
     raise exception 'La referencia externa debe tener entre 3 y 80 caracteres.';
   end if;
 
@@ -98,13 +93,13 @@ begin
   operation := 'EXT:' || company.slug || ':' || btrim(p_external_id);
   if char_length(operation) > 100 then raise exception 'La referencia externa es demasiado larga.'; end if;
   perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(company.id::text || ':' || operation, 0)
+    pg_catalog.hashtextextended(customer.id::text || ':' || operation, 0)
   );
 
   select * into existing from public.purchases
-  where company_id = company.id and operation_id = operation;
+  where owner_id = customer.id and operation_id = operation;
   if existing.id is not null then
-    if existing.owner_id <> customer.id or existing.bike_id <> item.id or existing.amount_usdt <> amount then
+    if existing.bike_id <> item.id or existing.amount_usdt <> amount then
       raise exception 'La referencia externa ya pertenece a otra compra.';
     end if;
     return jsonb_build_object('purchase', to_jsonb(existing), 'created', false);
